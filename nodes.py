@@ -9,7 +9,6 @@ class AccurateDenoise:
             "required": {
                 "model": ("MODEL",),
                 "scheduler": (comfy.samplers.SCHEDULER_NAMES,),
-                "steps": ("INT", {"default": 20, "min": 1, "max": 10000}),
                 "denoise": (
                     "FLOAT",
                     {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.001},
@@ -21,7 +20,7 @@ class AccurateDenoise:
     FUNCTION = "recompute"
     CATEGORY = "sampling/custom_sampling/schedulers"
 
-    def recompute(self, model, scheduler, steps, denoise):
+    def recompute(self, model, scheduler, denoise):
         if denoise <= 0.0:
             return (0.0,)
         if denoise >= 1.0:
