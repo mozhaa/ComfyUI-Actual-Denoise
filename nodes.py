@@ -63,7 +63,7 @@ class AccurateDenoiseStep:
                     "FLOAT",
                     {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.001},
                 ),
-                "total_steps": ("INT", {"default": 20, "min": 1, "max": 10000}),
+                "steps": ("INT", {"default": 20, "min": 1, "max": 10000}),
             }
         }
 
@@ -72,11 +72,11 @@ class AccurateDenoiseStep:
     FUNCTION = "recompute"
     CATEGORY = "sampling/custom_sampling/schedulers"
 
-    def recompute(self, model, scheduler, denoise, total_steps):
+    def recompute(self, model, scheduler, denoise, steps):
         total_sigma_steps = 1000
         idx = get_sigma_index(model, scheduler, denoise, total_sigma_steps)
 
-        start_at_step = int(round(idx * total_steps / total_sigma_steps))
+        start_at_step = int(round(idx * steps / total_sigma_steps))
 
-        start_at_step = max(0, min(total_steps, start_at_step))
-        return (start_at_step, scheduler)
+        start_at_step = max(0, min(steps, start_at_step))
+        return (start_at_step, steps, scheduler)
