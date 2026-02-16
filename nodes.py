@@ -1,25 +1,28 @@
 import comfy.samplers
 
 
-def get_sigma_index(model, scheduler, actual_denoise, total_sigma_steps=1000):
-    if actual_denoise <= 0.0:
-        return total_sigma_steps
-    if actual_denoise >= 1.0:
+def get_sigmas(model, scheduler):
+    model_sampling = model.get_model_object("model_sampling")
+    sigmas = comfy.samplers.calculate_sigmas(model_sampling, scheduler, 1000).cpu()
+    return sigmas, sigmas[0].item()
+
+
+def find_sigma_index(sigmas, target_sigma_ratio):
+    if target_sigma_ratio <= 0.0:
+        return len(sigmas)
+    if target_sigma_ratio >= 1.0:
         return 0
 
-    model_sampling = model.get_model_object("model_sampling")
-    sigmas = comfy.samplers.calculate_sigmas(
-        model_sampling, scheduler, total_sigma_steps
-    ).cpu()
-
-    sigma0 = sigmas[0].item()
-    threshold = actual_denoise * sigma0
-
+    threshold = target_sigma_ratio * sigmas[0].item()
     idx = (sigmas < threshold).nonzero()
-    if len(idx) == 0:
-        return total_sigma_steps
+    return idx[0, 0].item() if len(idx) > 0 else len(sigmas)
 
-    return idx[0, 0].item()
+
+def get_sigma_at_fraction(sigmas, step_fraction):
+    n = len(sigmas)
+    idx = int(round(step_fraction * (n - 1)))
+    idx = max(0, min(n - 1, idx))
+    return sigmas[idx].item()
 
 
 class AccurateDenoise:
@@ -29,7 +32,7 @@ class AccurateDenoise:
             "required": {
                 "model": ("MODEL",),
                 "scheduler": (comfy.samplers.KSampler.SCHEDULERS,),
-                "actual_denoise": (
+                "target_sigma_ratio": (
                     "FLOAT",
                     {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.001},
                 ),
@@ -41,12 +44,10 @@ class AccurateDenoise:
     FUNCTION = "execute"
     CATEGORY = "sampling/custom_sampling/schedulers"
 
-    def execute(self, model, scheduler, actual_denoise):
-        total_sigma_steps = 1000
-        idx = get_sigma_index(model, scheduler, actual_denoise, total_sigma_steps)
-
-        denoise = 1.0 - (idx / total_sigma_steps)
-
+    def execute(self, model, scheduler, target_sigma_ratio):
+        sigmas, _ = get_sigmas(model, scheduler)
+        idx = find_sigma_index(sigmas, target_sigma_ratio)
+        denoise = 1.0 - (idx / len(sigmas))
         denoise = max(0.0, min(1.0, denoise))
         return (denoise, scheduler)
 
@@ -58,7 +59,7 @@ class AccurateDenoiseStep:
             "required": {
                 "model": ("MODEL",),
                 "scheduler": (comfy.samplers.KSampler.SCHEDULERS,),
-                "actual_denoise": (
+                "target_sigma_ratio": (
                     "FLOAT",
                     {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.001},
                 ),
@@ -71,29 +72,12 @@ class AccurateDenoiseStep:
     FUNCTION = "execute"
     CATEGORY = "sampling/custom_sampling/schedulers"
 
-    def execute(self, model, scheduler, actual_denoise, steps):
-        total_sigma_steps = 1000
-        idx = get_sigma_index(model, scheduler, actual_denoise, total_sigma_steps)
-
-        start_at_step = int(round(idx * steps / total_sigma_steps))
-
+    def execute(self, model, scheduler, target_sigma_ratio, steps):
+        sigmas, _ = get_sigmas(model, scheduler)
+        idx = find_sigma_index(sigmas, target_sigma_ratio)
+        start_at_step = int(round(idx * steps / len(sigmas)))
         start_at_step = max(0, min(steps, start_at_step))
         return (start_at_step, steps, scheduler)
-
-
-def get_actual_denoise(model, scheduler, start_at_step, steps, total_sigma_steps=1000):
-    start_at_step = max(0, min(steps, start_at_step))
-    idx_high = int(round(start_at_step * total_sigma_steps / steps))
-    idx_high = max(0, min(total_sigma_steps - 1, idx_high))
-
-    model_sampling = model.get_model_object("model_sampling")
-    sigmas = comfy.samplers.calculate_sigmas(
-        model_sampling, scheduler, total_sigma_steps
-    ).cpu()
-
-    sigma_start = sigmas[idx_high].item()
-    sigma0 = sigmas[0].item()
-    return sigma_start / sigma0
 
 
 class AccurateDenoiseInverse:
@@ -107,25 +91,25 @@ class AccurateDenoiseInverse:
                     "FLOAT",
                     {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.001},
                 ),
-                "steps": ("INT", {"default": 20, "min": 1, "max": 10000}),
             }
         }
 
     RETURN_TYPES = ("FLOAT", comfy.samplers.KSampler.SCHEDULERS)
-    RETURN_NAMES = ("actual_denoise", "scheduler")
+    RETURN_NAMES = ("target_sigma_ratio", "scheduler")
     FUNCTION = "execute"
     CATEGORY = "sampling/custom_sampling/schedulers"
 
-    def execute(self, model, scheduler, denoise, steps):
+    def execute(self, model, scheduler, denoise):
         if denoise <= 0.0:
             return (0.0, scheduler)
         if denoise >= 1.0:
             return (1.0, scheduler)
 
-        steps_used = int(round(denoise * steps))
-        start_at_step = steps - steps_used
-        actual_denoise = get_actual_denoise(model, scheduler, start_at_step, steps)
-        return (actual_denoise, scheduler)
+        step_fraction = 1.0 - denoise
+        sigmas, sigma0 = get_sigmas(model, scheduler)
+        sigma_at_step = get_sigma_at_fraction(sigmas, step_fraction)
+        actual_ratio = sigma_at_step / sigma0
+        return (actual_ratio, scheduler)
 
 
 class AccurateDenoiseInverseStep:
@@ -141,10 +125,14 @@ class AccurateDenoiseInverseStep:
         }
 
     RETURN_TYPES = ("FLOAT", comfy.samplers.KSampler.SCHEDULERS)
-    RETURN_NAMES = ("actual_denoise", "scheduler")
+    RETURN_NAMES = ("target_sigma_ratio", "scheduler")
     FUNCTION = "execute"
     CATEGORY = "sampling/custom_sampling/schedulers"
 
     def execute(self, model, scheduler, start_at_step, steps):
-        actual_denoise = get_actual_denoise(model, scheduler, start_at_step, steps)
-        return (actual_denoise, scheduler)
+        start_at_step = max(0, min(steps, start_at_step))
+        step_fraction = start_at_step / steps
+        sigmas, sigma0 = get_sigmas(model, scheduler)
+        sigma_at_step = get_sigma_at_fraction(sigmas, step_fraction)
+        actual_ratio = sigma_at_step / sigma0
+        return (actual_ratio, scheduler)
