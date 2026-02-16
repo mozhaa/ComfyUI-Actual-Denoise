@@ -89,7 +89,7 @@ class ActualDenoiseInverse:
                 "scheduler": (comfy.samplers.KSampler.SCHEDULERS,),
                 "denoise": (
                     "FLOAT",
-                    {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.001},
+                    {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01},
                 ),
             }
         }
