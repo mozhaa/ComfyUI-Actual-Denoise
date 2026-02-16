@@ -36,7 +36,7 @@ class AccurateDenoise:
             }
         }
 
-    RETURN_TYPES = ("FLOAT", "COMBO")
+    RETURN_TYPES = ("FLOAT", "STRING")
     RETURN_NAMES = ("denoise", "scheduler")
     FUNCTION = "recompute"
     CATEGORY = "sampling/custom_sampling/schedulers"
@@ -66,7 +66,7 @@ class AccurateDenoiseStep:
             }
         }
 
-    RETURN_TYPES = ("INT", "INT", "SCHEDULER")
+    RETURN_TYPES = ("INT", "INT", "STRING")
     RETURN_NAMES = ("start_at_step", "steps", "scheduler")
     FUNCTION = "recompute"
     CATEGORY = "sampling/custom_sampling/schedulers"
