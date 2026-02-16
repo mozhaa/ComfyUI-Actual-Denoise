@@ -2,8 +2,8 @@
 Simple ComfyUI nodes to set the actual amount of noise in img2img, ensuring consistent behavior when changing schedulers.
 
 ## Installation
-1. Use `Custom Nodes Manager > Install via Git URL` in ComfyUI-Manager
-2. Or clone the repository into `custom_nodes/` manually (there are no external dependencies, so that's all)
++ Use `Custom Nodes Manager > Install via Git URL` in ComfyUI-Manager
++ Or clone the repository into `custom_nodes/` manually (there are no external dependencies, so that's all)
 
 ## Usage
 There are several ways to use these nodes:
