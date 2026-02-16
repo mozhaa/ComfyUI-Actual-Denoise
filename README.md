@@ -11,14 +11,16 @@ There are several ways to use these nodes:
 1. simply connect `Actual Denoise` node to your KSampler, choose scheduler and choose actual_denoise.
 
    Be aware that actual_denoise and denoise are different values, so you need to use different values for it (see the next example)
+   
 <img width="971" height="707" alt="image" src="https://github.com/user-attachments/assets/1c8d795c-923e-4aee-94c5-d9a2295ebcd7" />
 
-2. chain "Actual Denoise Inverse" and "Actual Denoise" to use usual denoise instead of actual_denoise.
+3. chain "Actual Denoise Inverse" and "Actual Denoise" to use usual denoise instead of actual_denoise.
 
    You can use any scheduler you're used to in the first Inverse node (that one will be used to map denoise into actual_denoise), and set scheduler you want to use right now in the second node
+   
 <img width="1304" height="690" alt="image" src="https://github.com/user-attachments/assets/067dfddc-01c8-46d9-b28a-25b8ef17dee0" />
 
-3. use `(Step)` versions of the same nodes if you're using `KSampler (Advanced)` (`start_at_step`, `end_at_step` instead of `denoise`)
+4. use `(Step)` versions of the same nodes if you're using `KSampler (Advanced)` (`start_at_step`, `end_at_step` instead of `denoise`)
 
 That way, when you change the scheduler but keep the `actual_denoise` value the same, the image will get the exact same amount of noise (unlike when you fix `denoise` directly).
 
@@ -63,7 +65,7 @@ vivid colors, saturated, glowstick, (sparkle:1.1), bokeh, light particles, light
 
 And also I add `dark` into negative prompt, because I noticed that it heavily impacts the model and the image tends to become much lighter.
 
-After I've decided on prompts, I need to choose `denoise` value. I'll use the same sampler and scheduler for now. Here is what I get with different `denoise` values with `euler simple`:
+After I've decided on prompts, I need to choose `denoise` value. I'll use the same sampler and scheduler for now. Here is what I get with different `denoise` values with `euler beta`:
 
 <img width="1576" height="1786" alt="z" src="https://github.com/user-attachments/assets/3008b77a-2157-4b9e-aee4-206266d66580" />
 
@@ -83,9 +85,11 @@ The actual amount of added noise depends on the scheduler that is being used.
 
 The scheduler defines the relationship between `step / total_steps` (percentage of steps) and the amount of noise on that step. 
 Here's how you can see the actual plot (thanks to [KJNodes](https://github.com/kijai/ComfyUI-KJNodes)):
+
 <img width="1414" height="507" alt="workflow (15)" src="https://github.com/user-attachments/assets/a8858f96-7e4c-4e69-b390-51b7598b5c7c" />
 
 Here are plots for some schedulers (it might be difficult to see the difference just by looking at the graph):
+
 <img width="808" height="484" alt="z" src="https://github.com/user-attachments/assets/3d120419-917e-4833-b1e5-ebf13dea0ddf" />
 
 The effect might not seem relevant to you (0.5 vs 0.6), but in different img2img scenarios that would have a different effect. 
@@ -94,4 +98,5 @@ Personally, I always kept in mind something like "if I switch from simple to kl_
 So what's the solution? Of course you can manually adjust denoise whenever you vary the scheduler, 
 but another solution is to choose not the `steps / total_steps`, but the actual amount of noise. 
 Instead of setting `denoise` you can set `actual_denoise` (actual amount of noise) and then calculate `denoise` based on the scheduler you're using.
+
 <img width="640" height="480" alt="showcase" src="https://github.com/user-attachments/assets/c645d1e7-6e50-48a0-a594-895cbd07252f" />
