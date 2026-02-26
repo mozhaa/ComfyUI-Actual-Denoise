@@ -1,0 +1,19 @@
+[project]
+name = "actual-denoise"
+description = "Simple ComfyUI nodes to set the actual amount of noise in img2img, ensuring consistent behavior when changing schedulers."
+version = "1.0.0"
+license = {file = "LICENSE"} 
+classifiers = [
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Repository = "https://github.com/mozhaa/ComfyUI-Actual-Denoise"
+Documentation = "https://github.com/mozhaa/ComfyUI-Actual-Denoise/blob/main/README.md"
+"Bug Tracker" = "https://github.com/mozhaa/ComfyUI-Actual-Denoise/issues"
+
+[tool.comfy]
+PublisherId = "mozhaa"
+DisplayName = "Actual Denoise"
+Icon = ""
+includes = [] 
